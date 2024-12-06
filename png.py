@@ -28,7 +28,10 @@ class PNG():
 
     def valid_png(self):
         #Reads the PNG signature and returns if correct values were found or not
-        pass
+        if self.data[0:8].hex() == "89504e470d0a1a0a":
+            return True
+        else:
+            return False
 
     def read_header(self):
         #Read the image header chunk (IHDR) and updates relevant attributes
@@ -62,8 +65,20 @@ def main():
     print("img: ", image.img)
 
     image.load_file("C:/Users/satis/Downloads/brainbow.png")
-    print(image.data)
+    
+    print(image.data[0:100].hex())
+    print(type(image.data))
+    print(len(image.data))
     print(image.info)
+    print(type(image.info))
+    print(len(image.info))
+    print()
+
+    if image.valid_png():
+        print("This is a valid PNG file")
+    else:
+        print("This is not a valid PNG file")
+    print()
 
 
 if __name__ == "__main__":
