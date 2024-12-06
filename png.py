@@ -17,10 +17,11 @@ class PNG():
         self.img = []
 
     def load_file(self, file_name):
-        #Opens a PNG file, and fills out data attribute
+        #Opens a PNG file, fills out data and info attribute
         try:
-            self.data = open(file_name)
-            self.info = file_name
+            with open(file_name, mode = "rb") as f:
+                self.data = f.read()
+                self.info = file_name
         except FileNotFoundError:
             print("File not found")
             self.info = "file not found"
@@ -59,6 +60,10 @@ def main():
     print("filter:  ", image.filter)
     print("interlace:   ", image.interlace)
     print("img: ", image.img)
+
+    image.load_file("C:/Users/satis/Downloads/brainbow.png")
+    print(image.data)
+    print(image.info)
 
 
 if __name__ == "__main__":
