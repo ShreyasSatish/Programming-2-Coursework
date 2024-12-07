@@ -1,4 +1,5 @@
 """Coding Task to open a PNG, store its contents, and save modified PNG files"""
+import zlib
 
 
 class PNG():
@@ -35,17 +36,22 @@ class PNG():
 
     def read_header(self):
         #Read the image header chunk (IHDR) and updates relevant attributes
-        IHDR_end = self.data.hex().index("49484452") + 8
-        self.width = int(self.data.hex()[IHDR_end:IHDR_end + 8], 16)
-        self.height = int(self.data.hex()[IHDR_end + 8:IHDR_end + 16], 16)
-        self.bit_depth = int(self.data.hex()[IHDR_end + 16:IHDR_end + 18], 16)
-        self.color_type = int(self.data.hex()[IHDR_end + 18:IHDR_end + 20], 16)
-        self.compress = int(self.data.hex()[IHDR_end + 20:IHDR_end + 22], 16)
-        self.filter = int(self.data.hex()[IHDR_end + 22:IHDR_end + 24], 16)
-        self.interlace = int(self.data.hex()[IHDR_end + 24: IHDR_end + 26], 16)
+        IHDR_end_index = self.data.hex().index("49484452") + 8
+        self.width = int(self.data.hex()[IHDR_end_index:IHDR_end_index + 8], 16)
+        self.height = int(self.data.hex()[IHDR_end_index + 8:IHDR_end_index + 16], 16)
+        self.bit_depth = int(self.data.hex()[IHDR_end_index + 16:IHDR_end_index + 18], 16)
+        self.color_type = int(self.data.hex()[IHDR_end_index + 18:IHDR_end_index + 20], 16)
+        self.compress = int(self.data.hex()[IHDR_end_index + 20:IHDR_end_index + 22], 16)
+        self.filter = int(self.data.hex()[IHDR_end_index + 22:IHDR_end_index + 24], 16)
+        self.interlace = int(self.data.hex()[IHDR_end_index + 24: IHDR_end_index + 26], 16)
+    
     def read_chunks(self):
         #Reads through all chunks and updates the img attribute
-        pass
+        IDAT_end_index = self.data.hex().index("49444154") + 8
+        #IEND_end_index = self.data.hex().index("49454E44") + 8
+        decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
+        decompressed_data = decompressor.decompress(self.data, 47)
+        print(decompressed_data)
 
     def save_rgb(self, file_name, rgb_option):
         #Save R,G, or B channel of img attribute into PNG file called file_name
@@ -99,11 +105,7 @@ def main():
     print("img: ", image.img)
     print()
 
-    print()
-    print("data")
-    print(image.data)
-    print()
-    print(image.data.hex())
+    image.read_chunks()
 
 
 if __name__ == "__main__":
