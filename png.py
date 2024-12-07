@@ -35,8 +35,14 @@ class PNG():
 
     def read_header(self):
         #Read the image header chunk (IHDR) and updates relevant attributes
-        pass
-
+        IHDR_end = self.data.hex().index("49484452") + 8
+        self.width = int(self.data.hex()[IHDR_end:IHDR_end + 8], 16)
+        self.height = int(self.data.hex()[IHDR_end + 8:IHDR_end + 16], 16)
+        self.bit_depth = int(self.data.hex()[IHDR_end + 16:IHDR_end + 18], 16)
+        self.color_type = int(self.data.hex()[IHDR_end + 18:IHDR_end + 20], 16)
+        self.compress = int(self.data.hex()[IHDR_end + 20:IHDR_end + 22], 16)
+        self.filter = int(self.data.hex()[IHDR_end + 22:IHDR_end + 24], 16)
+        self.interlace = int(self.data.hex()[IHDR_end + 24: IHDR_end + 26], 16)
     def read_chunks(self):
         #Reads through all chunks and updates the img attribute
         pass
@@ -64,7 +70,7 @@ def main():
     print("interlace:   ", image.interlace)
     print("img: ", image.img)
 
-    image.load_file("C:/Users/satis/Downloads/brainbow.png")
+    image.load_file("brainbow.png")
     
     print(image.data[0:100].hex())
     print(type(image.data))
@@ -79,6 +85,25 @@ def main():
     else:
         print("This is not a valid PNG file")
     print()
+
+    image.read_header()
+    
+    print("info:    ", image.info)
+    print("width:   ", image.width)
+    print("height:  ", image.height)
+    print("bit_depth", image.bit_depth)
+    print("color_type", image.color_type)
+    print("compress:", image.compress)
+    print("filter:  ", image.filter)
+    print("interlace:", image.interlace)
+    print("img: ", image.img)
+    print()
+
+    print()
+    print("data")
+    print(image.data)
+    print()
+    print(image.data.hex())
 
 
 if __name__ == "__main__":
