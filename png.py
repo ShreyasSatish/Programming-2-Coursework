@@ -69,19 +69,15 @@ class PNG():
 
         #Setting the scanline length depending on the color_type attribute
         if self.color_type == 0:
-            scanline_length = self.width + 1
             bytes_per_pixel = 1
             stride = self.width * bytes_per_pixel
         elif self.color_type == 2:
-            scanline_length = 3*self.width + 1
             bytes_per_pixel = 3
             stride = self.width * bytes_per_pixel
         elif self.color_type == 4:
-            scanline_length = 2*self.width + 1
             bytes_per_pixel = 2
             stride = self.width * bytes_per_pixel
         elif self.color_type == 6:
-            scanline_length = 4*self.width + 1
             bytes_per_pixel = 4
             stride = self.width * bytes_per_pixel
 
@@ -134,7 +130,9 @@ class PNG():
                 else:
                     print("Invalid filter type")
                 recon.append(recon_x & 0xff) 
-        self.img = [recon[i:i + 3] for i in range(0, len(recon), 3)]
+        row = [recon[i:i + 3] for i in range(0, len(recon), 3)]
+        self.img = [row[i:i + self.width] for i in range(0, len(row), self.width)]
+        
 
     def save_rgb(self, file_name, rgb_option):
         #Save R,G, or B channel of img attribute into PNG file called file_name
