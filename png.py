@@ -1,5 +1,4 @@
 """Coding Task to open a PNG, store its contents, and save modified PNG files"""
-import zlib
 
 
 class PNG():
@@ -36,23 +35,61 @@ class PNG():
 
     def read_header(self):
         #Read the image header chunk (IHDR) and updates relevant attributes
-        IHDR_start = self.data.hex().index("49484452") + 8
-        self.width = int(self.data.hex()[IHDR_start:IHDR_start + 8], 16)
-        self.height = int(self.data.hex()[IHDR_start + 8:IHDR_start + 16], 16)
-        self.bit_depth = int(self.data.hex()[IHDR_start + 16:IHDR_start + 18], 16)
-        self.color_type = int(self.data.hex()[IHDR_start + 18:IHDR_start + 20], 16)
-        self.compress = int(self.data.hex()[IHDR_start + 20:IHDR_start + 22], 16)
-        self.filter = int(self.data.hex()[IHDR_start + 22:IHDR_start + 24], 16)
-        self.interlace = int(self.data.hex()[IHDR_start + 24: IHDR_start + 26], 16)
+        IHDR_start_index = self.data.hex().index("49484452") + 8
+        self.width = int(self.data.hex()[IHDR_start_index:IHDR_start_index + 8], 16)
+        self.height = int(self.data.hex()[IHDR_start_index + 8:IHDR_start_index + 16], 16)
+        self.bit_depth = int(self.data.hex()[IHDR_start_index + 16:IHDR_start_index + 18], 16)
+        self.color_type = int(self.data.hex()[IHDR_start_index + 18:IHDR_start_index + 20], 16)
+        self.compress = int(self.data.hex()[IHDR_start_index + 20:IHDR_start_index + 22], 16)
+        self.filter = int(self.data.hex()[IHDR_start_index + 22:IHDR_start_index + 24], 16)
+        self.interlace = int(self.data.hex()[IHDR_start_index + 24: IHDR_start_index + 26], 16)
     
     def read_chunks(self):
         #Reads through all chunks and updates the img attribute
-        IDAT_start = self.data.hex().index("49444154") + 8
-        parsed_data = bytes(self.data.hex()[IDAT_start:])
-        #IEND_end_index = self.data.hex().index("49454E44") + 8
-        decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
-        decompressed_data = decompressor.decompress(parsed_data, 47)
-        print(decompressed_data)
+        if not self.data:
+            print("No data has been loaded")
+            return
+        
+        import zlib
+
+        img_data = []
+        IDAT_start_index = self.data.hex().index("49444154") + 8
+        IDAT_length = int(self.data.hex()[IDAT_start_index - 16:IDAT_start_index - 8], 16) #Go back to find length of IDAT1 section
+        IEND_finder = int(self.data.hex()[IDAT_start_index + IDAT_length + 8: IDAT_start_index + IDAT_length + 16], 16) #Check if after the IDAT1 section the IEND header is there
+        IDAT_data = self.data[IDAT_start_index:IDAT_start_index + IDAT_length]
+        img_data += IDAT_data
+        
+        while IEND_finder != "49454E44":
+            IDAT_start_index += IDAT_length + 16 #Find index of next IDAT section just before data starts
+            IDAT_length = int(self.data.hex()[IDAT_start_index - 16:IDAT_start_index - 8], 16)
+            IEND_finder = str(self.data.hex()[IDAT_start_index + IDAT_length + 8: IDAT_start_index + IDAT_length + 16])
+            IDAT_data = self.data[IDAT_start_index:IDAT_start_index + IDAT_length]
+            img_data += IDAT_data
+        
+        try:
+            decompressed_data = zlib.decompress(img_data)
+        except zlib.error as e:
+            print(f"Decompression failed: {e}")
+            return
+
+        # offset = 8
+        # img_data = b""
+
+        # while offset < len(self.data):
+        #     chunk_length = int.from_bytes(self.data[offset:offset + 4], "big")
+        #     offset += 4
+        #     chunk_type = self.data[offset:offset + 4].decode("ascii")
+        #     chunk_data = self.data[offset:offset + chunk_length]
+        #     offset += 4
+        #     if chunk_type == "IDAT":
+        #         img_data += chunk_data
+        #     elif chunk_type == "IEND":
+        #         break
+        # try:
+        #     decompressed_data = zlib.decompress(img_data)
+        # except zlib.error as e:
+        #     print(f"Decompression failed: {e}")
+        #     return
 
     def save_rgb(self, file_name, rgb_option):
         #Save R,G, or B channel of img attribute into PNG file called file_name
