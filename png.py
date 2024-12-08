@@ -71,16 +71,43 @@ class PNG():
         if self.color_type == 0:
             scanline_length = self.width + 1
             bytes_per_pixel = 1
+            stride = self.width * bytes_per_pixel
         elif self.color_type == 2:
             scanline_length = 3*self.width + 1
             bytes_per_pixel = 3
+            stride = self.width * bytes_per_pixel
         elif self.color_type == 4:
             scanline_length = 2*self.width + 1
             bytes_per_pixel = 2
+            stride = self.width * bytes_per_pixel
         elif self.color_type == 6:
             scanline_length = 4*self.width + 1
             bytes_per_pixel = 4
+            stride = self.width * bytes_per_pixel
 
+        recon = []
+        def recon_a(y, x): #To find recon of left bit
+            return recon[y * stride + x - bytes_per_pixel] if x >= bytes_per_pixel else 0
+            
+        def recon_b(y, x): #To find recon of above bit
+            return recon[(y - 1) * stride + x] if y > 0 else 0
+            
+        def recon_c(y, x): #To find recon of above left bit
+            return recon[(y - 1) * stride + x - bytes_per_pixel] if y > 0 and x >= bytes_per_pixel else 0
+            
+        def paeth(a, b, c): #To find the paeth filter
+            p = a + b - c
+            pa = abs(p - a)
+            pb = abs(p - b)
+            pc = abs(p - c)
+            if pa <= pb and pa <= pc:
+                return a
+            elif pb <= pc:
+                return b
+            else:
+                return c
+
+        i = 0
         for y in range(0, self.height):
 
             #Check if filter method is valid
@@ -88,63 +115,26 @@ class PNG():
                 print("Invalid Filter Method")
                 return
 
-            filter_type = decompressed_data[y * scanline_length]
-            scanline = decompressed_data[y * scanline_length + 1: (y + 1) * scanline_length]
-            reconstructed_scanline = bytearray(len(scanline))
-
+            filter_type = decompressed_data[i]
+            i += 1
             #Find the filter method of the scanline and undo the relevant filter
-            if filter_type == 0:
-                self.img.append(scanline)
-            elif filter_type == 1:
-                for x in range(len(scanline)):
-                    if x < bytes_per_pixel:
-                        reconstructed_scanline[x] = scanline[x]
-                    else:
-                        reconstructed_scanline[x] = (scanline[x] + reconstructed_scanline[x - bytes_per_pixel]) % 256
-                self.img.append(reconstructed_scanline)
-            elif filter_type == 2:
-                for x in range(len(scanline)):
-                    if x == 0:
-                        prev_scanline = scanline
-                        self.img.append(scanline)
-                    else:
-                        reconstructed_scanline[x] = (scanline[x] + prev_scanline[x]) % 256
-                self.img.append(reconstructed_scanline)
-            elif filter_type == 3:
-                for x in range(len(scanline)):
-                    if x <= bytes_per_pixel:
-                        prev_scanline = scanline
-                        reconstructed_scanline[x] = (scanline[x] + (prev_scanline[x]) // 2) % 256
-                    else:
-                        left = reconstructed_scanline[x - bytes_per_pixel]
-                        reconstructed_scanline[x] = (scanline[x] + (left + prev_scanline[x]) // 2) % 256
-                self.img.append(reconstructed_scanline)
-            elif filter_type == 4:
-                def paeth_predictor(a, b, c):
-                    p = a + b - c
-                    pa = abs(p - a)
-                    pb = abs(p - b)
-                    pc = abs(p - c)
-                    if pa <= pb and pa <= pc:
-                        return a
-                    elif pb <= pc:
-                        return b
-                    else:
-                        return c
-
-                for x in range(len(scanline)):
-                    if x <= bytes_per_pixel:
-                        prev_scanline = scanline
-                        prev_left = prev_scanline[x - bytes_per_pixel]
-                        reconstructed_scanline[x] = (scanline[x] + paeth_predictor(0, prev_scanline[x], prev_left)) % 256
-                    else:
-                        prev_left = prev_scanline[x - bytes_per_pixel]
-                        left = reconstructed_scanline[x - bytes_per_pixel]
-                        reconstructed_scanline[x] = (scanline[x] + paeth_predictor(left, prev_scanline[x], prev_left)) % 256
-                self.img.append(reconstructed_scanline)
-            else:
-                print(f"Unrecognised filter type: {filter_type}")
-                
+            for x in range(stride):
+                filtered_x = decompressed_data[i]
+                i += 1
+                if filter_type == 0: #None filter
+                    recon_x = filtered_x
+                elif filter_type == 1: #Sub filter
+                    recon_x = filtered_x + recon_a(y, x)
+                elif filter_type == 2: #Up filter
+                    recon_x = filtered_x + recon_b(y, x)
+                elif filter_type == 3: #Average filter
+                    recon_x = filtered_x + (recon_a(y, x) + recon_b(y, x)) // 2
+                elif filter_type == 4: #Paeth filter
+                    recon_x = filtered_x + paeth(recon_a(y, x), recon_b(y, x), recon_c(y, x))
+                else:
+                    print("Invalid filter type")
+                recon.append(recon_x & 0xff) 
+        self.img = [recon[i:i + 3] for i in range(0, len(recon), 3)]
 
     def save_rgb(self, file_name, rgb_option):
         #Save R,G, or B channel of img attribute into PNG file called file_name
@@ -203,7 +193,7 @@ def main():
         for j in range(6):
             print(image.img[i][j], end = " ")
         print()
-
+    
 
 if __name__ == "__main__":
     main()
