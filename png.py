@@ -46,50 +46,105 @@ class PNG():
     
     def read_chunks(self):
         #Reads through all chunks and updates the img attribute
+        
+        #Checks if data has been loaded
         if not self.data:
             print("No data has been loaded")
             return
         
         import zlib
 
-        img_data = []
+        #Put all the data that starts after the IDAT header into a separate variable
+        img_data = b""
         IDAT_start_index = self.data.hex().index("49444154") + 8
-        IDAT_length = int(self.data.hex()[IDAT_start_index - 16:IDAT_start_index - 8], 16) #Go back to find length of IDAT1 section
-        IEND_finder = int(self.data.hex()[IDAT_start_index + IDAT_length + 8: IDAT_start_index + IDAT_length + 16], 16) #Check if after the IDAT1 section the IEND header is there
-        IDAT_data = self.data[IDAT_start_index:IDAT_start_index + IDAT_length]
-        img_data += IDAT_data
-        
-        while IEND_finder != "49454E44":
-            IDAT_start_index += IDAT_length + 16 #Find index of next IDAT section just before data starts
-            IDAT_length = int(self.data.hex()[IDAT_start_index - 16:IDAT_start_index - 8], 16)
-            IEND_finder = str(self.data.hex()[IDAT_start_index + IDAT_length + 8: IDAT_start_index + IDAT_length + 16])
-            IDAT_data = self.data[IDAT_start_index:IDAT_start_index + IDAT_length]
-            img_data += IDAT_data
-        
+        IDAT_data = self.data.hex()[IDAT_start_index:]
+        img_data += bytes.fromhex(IDAT_data)
+
+        #Decompress the data, raise an error if decompression failed
         try:
             decompressed_data = zlib.decompress(img_data)
         except zlib.error as e:
             print(f"Decompression failed: {e}")
             return
 
-        # offset = 8
-        # img_data = b""
+        #Setting the scanline length depending on the color_type attribute
+        if self.color_type == 0:
+            scanline_length = self.width + 1
+            bytes_per_pixel = 1
+        elif self.color_type == 2:
+            scanline_length = 3*self.width + 1
+            bytes_per_pixel = 3
+        elif self.color_type == 4:
+            scanline_length = 2*self.width + 1
+            bytes_per_pixel = 2
+        elif self.color_type == 6:
+            scanline_length = 4*self.width + 1
+            bytes_per_pixel = 4
 
-        # while offset < len(self.data):
-        #     chunk_length = int.from_bytes(self.data[offset:offset + 4], "big")
-        #     offset += 4
-        #     chunk_type = self.data[offset:offset + 4].decode("ascii")
-        #     chunk_data = self.data[offset:offset + chunk_length]
-        #     offset += 4
-        #     if chunk_type == "IDAT":
-        #         img_data += chunk_data
-        #     elif chunk_type == "IEND":
-        #         break
-        # try:
-        #     decompressed_data = zlib.decompress(img_data)
-        # except zlib.error as e:
-        #     print(f"Decompression failed: {e}")
-        #     return
+        for y in range(0, self.height):
+
+            #Check if filter method is valid
+            if self.filter != 0:
+                print("Invalid Filter Method")
+                return
+
+            filter_type = decompressed_data[y * scanline_length]
+            scanline = decompressed_data[y * scanline_length + 1: (y + 1) * scanline_length]
+            reconstructed_scanline = bytearray(len(scanline))
+
+            #Find the filter method of the scanline and undo the relevant filter
+            if filter_type == 0:
+                self.img.append(scanline)
+            elif filter_type == 1:
+                for x in range(len(scanline)):
+                    if x < bytes_per_pixel:
+                        reconstructed_scanline[x] = scanline[x]
+                    else:
+                        reconstructed_scanline[x] = (scanline[x] + reconstructed_scanline[x - bytes_per_pixel]) % 256
+                self.img.append(reconstructed_scanline)
+            elif filter_type == 2:
+                for x in range(len(scanline)):
+                    if x == 0:
+                        prev_scanline = scanline
+                        self.img.append(scanline)
+                    else:
+                        reconstructed_scanline[x] = (scanline[x] + prev_scanline[x]) % 256
+                self.img.append(reconstructed_scanline)
+            elif filter_type == 3:
+                for x in range(len(scanline)):
+                    if x <= bytes_per_pixel:
+                        prev_scanline = scanline
+                        reconstructed_scanline[x] = (scanline[x] + (prev_scanline[x]) // 2) % 256
+                    else:
+                        left = reconstructed_scanline[x - bytes_per_pixel]
+                        reconstructed_scanline[x] = (scanline[x] + (left + prev_scanline[x]) // 2) % 256
+                self.img.append(reconstructed_scanline)
+            elif filter_type == 4:
+                def paeth_predictor(a, b, c):
+                    p = a + b - c
+                    pa = abs(p - a)
+                    pb = abs(p - b)
+                    pc = abs(p - c)
+                    if pa <= pb and pa <= pc:
+                        return a
+                    elif pb <= pc:
+                        return b
+                    else:
+                        return c
+
+                for x in range(len(scanline)):
+                    if x <= bytes_per_pixel:
+                        prev_scanline = scanline
+                        prev_left = prev_scanline[x - bytes_per_pixel]
+                        reconstructed_scanline[x] = (scanline[x] + paeth_predictor(0, prev_scanline[x], prev_left)) % 256
+                    else:
+                        prev_left = prev_scanline[x - bytes_per_pixel]
+                        left = reconstructed_scanline[x - bytes_per_pixel]
+                        reconstructed_scanline[x] = (scanline[x] + paeth_predictor(left, prev_scanline[x], prev_left)) % 256
+                self.img.append(reconstructed_scanline)
+            else:
+                print(f"Unrecognised filter type: {filter_type}")
+                
 
     def save_rgb(self, file_name, rgb_option):
         #Save R,G, or B channel of img attribute into PNG file called file_name
@@ -144,6 +199,10 @@ def main():
     print()
 
     image.read_chunks()
+    for i in range(5):
+        for j in range(6):
+            print(image.img[i][j], end = " ")
+        print()
 
 
 if __name__ == "__main__":
