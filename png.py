@@ -36,21 +36,22 @@ class PNG():
 
     def read_header(self):
         #Read the image header chunk (IHDR) and updates relevant attributes
-        IHDR_end_index = self.data.hex().index("49484452") + 8
-        self.width = int(self.data.hex()[IHDR_end_index:IHDR_end_index + 8], 16)
-        self.height = int(self.data.hex()[IHDR_end_index + 8:IHDR_end_index + 16], 16)
-        self.bit_depth = int(self.data.hex()[IHDR_end_index + 16:IHDR_end_index + 18], 16)
-        self.color_type = int(self.data.hex()[IHDR_end_index + 18:IHDR_end_index + 20], 16)
-        self.compress = int(self.data.hex()[IHDR_end_index + 20:IHDR_end_index + 22], 16)
-        self.filter = int(self.data.hex()[IHDR_end_index + 22:IHDR_end_index + 24], 16)
-        self.interlace = int(self.data.hex()[IHDR_end_index + 24: IHDR_end_index + 26], 16)
+        IHDR_start = self.data.hex().index("49484452") + 8
+        self.width = int(self.data.hex()[IHDR_start:IHDR_start + 8], 16)
+        self.height = int(self.data.hex()[IHDR_start + 8:IHDR_start + 16], 16)
+        self.bit_depth = int(self.data.hex()[IHDR_start + 16:IHDR_start + 18], 16)
+        self.color_type = int(self.data.hex()[IHDR_start + 18:IHDR_start + 20], 16)
+        self.compress = int(self.data.hex()[IHDR_start + 20:IHDR_start + 22], 16)
+        self.filter = int(self.data.hex()[IHDR_start + 22:IHDR_start + 24], 16)
+        self.interlace = int(self.data.hex()[IHDR_start + 24: IHDR_start + 26], 16)
     
     def read_chunks(self):
         #Reads through all chunks and updates the img attribute
-        IDAT_end_index = self.data.hex().index("49444154") + 8
+        IDAT_start = self.data.hex().index("49444154") + 8
+        parsed_data = bytes(self.data.hex()[IDAT_start:])
         #IEND_end_index = self.data.hex().index("49454E44") + 8
         decompressor = zlib.decompressobj(-zlib.MAX_WBITS)
-        decompressed_data = decompressor.decompress(self.data, 47)
+        decompressed_data = decompressor.decompress(parsed_data, 47)
         print(decompressed_data)
 
     def save_rgb(self, file_name, rgb_option):
