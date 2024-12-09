@@ -145,7 +145,9 @@ class PNG():
                         entry[i] = 0
 
         flattened_list = [value for sublist in data for entry in sublist for value in entry]
-        channel_data = bytearray(flattened_list)
+        for i in range(len(flattened_list)):
+            flattened_list.insert(i * self.width * 3, 0)
+        channel_data = bytes(flattened_list)
         compressed_channel = zlib.compress(channel_data)
 
         with open(file_name, mode = "wb") as f:
@@ -159,7 +161,7 @@ class PNG():
             f.write(compressed_channel)
             f.write(zlib.crc32(b"IDAT" + compressed_channel).to_bytes(4, "big"))
             #Wrtite the IEND chunk
-            f.write(b"\x00\x00\x00\x00IEND\xae\x42\x60\x82")
+            f.write(self.data[-12:])
         
 
 
