@@ -46,7 +46,6 @@ class PNG():
     
     def read_chunks(self):
         #Reads through all chunks and updates the img attribute
-        
         #Checks if data has been loaded
         if not self.data:
             print("No data has been loaded")
@@ -65,31 +64,19 @@ class PNG():
             print(f"Decompression failed: {e}")
             return
 
-        #Setting the scanline length depending on the color_type attribute
-        if self.color_type == 0:
-            bytes_per_pixel = 1
-            stride = self.width * bytes_per_pixel
-        elif self.color_type == 2:
-            bytes_per_pixel = 3
-            stride = self.width * bytes_per_pixel
-        elif self.color_type == 4:
-            bytes_per_pixel = 2
-            stride = self.width * bytes_per_pixel
-        elif self.color_type == 6:
-            bytes_per_pixel = 4
-            stride = self.width * bytes_per_pixel
-
+        bytes_per_pixel = 3
+        stride= self.width * bytes_per_pixel
         recon = []
-        def recon_a(y, x): #To find recon of left bit
+        def recon_a(y, x): #To find reconstruction of left bit
             return recon[y * stride + x - bytes_per_pixel] if x >= bytes_per_pixel else 0
             
-        def recon_b(y, x): #To find recon of above bit
+        def recon_b(y, x): #To find reconstruction of above bit
             return recon[(y - 1) * stride + x] if y > 0 else 0
             
-        def recon_c(y, x): #To find recon of above left bit
+        def recon_c(y, x): #To find reconstruction of above left bit
             return recon[(y - 1) * stride + x - bytes_per_pixel] if y > 0 and x >= bytes_per_pixel else 0
             
-        def paeth(a, b, c): #To find the paeth filter
+        def paeth(a, b, c): #To find reconstruction of paeth filter
             p = a + b - c
             pa = abs(p - a)
             pb = abs(p - b)
@@ -103,12 +90,10 @@ class PNG():
 
         i = 0
         for y in range(0, self.height):
-
             #Check if filter method is valid
             if self.filter != 0:
                 print("Invalid Filter Method")
                 return
-
             filter_type = decompressed_data[i]
             i += 1
             #Find the filter method of the scanline and undo the relevant filter
@@ -137,88 +122,39 @@ class PNG():
             print("Invalid rgb_option, please enter from 1, 2, or 3")
             return
         
-        data = self.img
-        for sublist in data:
-            for entry in sublist:
-                for i in range(len(entry)):
-                    if i != rgb_option - 1:
-                        entry[i] = 0
+        #Create a copy of self.img
+        channel_img = []
+        for scanline in self.img:
+            channel_scanline = []
+            for pixel in scanline:
+                #Zero out channels apart from the selected one
+                new_pixel = [0, 0, 0]
+                new_pixel[rgb_option - 1] = pixel[rgb_option - 1]
+                channel_scanline.append(new_pixel)
+            channel_img.append(channel_scanline)
 
-        flattened_list = [value for sublist in data for entry in sublist for value in entry]
-        for i in range(len(flattened_list)):
-            flattened_list.insert(i * self.width * 3, 0)
-        channel_data = bytes(flattened_list)
-        compressed_channel = zlib.compress(channel_data)
+        #Add a filter byte at the start of each scanline
+        #Filter byte is 0 for simplicity
+        raw_data = bytearray()
+        for scanline in channel_img:
+            raw_data.append(0)
+            for pixel in scanline:
+                raw_data.extend(pixel)
+        
+        #Compress the data using the zlib format
+        compressed_data = zlib.compress(bytes(raw_data))
 
+        #Prepare the basic PNG file structure
         with open(file_name, mode = "wb") as f:
             f.write(b"\x89PNG\r\n\x1a\n") #Input PNG signature
             #Write the IHDR chunk
             IHDR_data = self.data[8:33]
             f.write(IHDR_data)
             #Write the IDAT chunk
-            f.write(len(compressed_channel).to_bytes(4, "big"))
+            f.write(len(compressed_data).to_bytes(4, "big"))
             f.write(b"IDAT")
-            f.write(compressed_channel)
-            f.write(zlib.crc32(b"IDAT" + compressed_channel).to_bytes(4, "big"))
+            f.write(compressed_data)
+            f.write(zlib.crc32(b"IDAT" + compressed_data).to_bytes(4, "big"))
             #Wrtite the IEND chunk
             f.write(self.data[-12:])
-        
-
-
-def main():
-    
-    print("PNG")
-    print()
-
-    image = PNG()
-
-    print("data:    ", image.data)
-    print("info:    ", image.info)
-    print("width:   ", image.width)
-    print("height:  ", image.height)
-    print("bit_depth:   ", image.bit_depth)
-    print("color_type:  ", image.color_type)
-    print("compress:    ", image.compress)
-    print("filter:  ", image.filter)
-    print("interlace:   ", image.interlace)
-    print("img: ", image.img)
-
-    image.load_file("brainbow.png")
-    
-    print(image.data[0:100].hex())
-    print(type(image.data))
-    print(len(image.data))
-    print(image.info)
-    print(type(image.info))
-    print(len(image.info))
-    print()
-
-    if image.valid_png():
-        print("This is a valid PNG file")
-    else:
-        print("This is not a valid PNG file")
-    print()
-
-    image.read_header()
-    
-    print("info:    ", image.info)
-    print("width:   ", image.width)
-    print("height:  ", image.height)
-    print("bit_depth", image.bit_depth)
-    print("color_type", image.color_type)
-    print("compress:", image.compress)
-    print("filter:  ", image.filter)
-    print("interlace:", image.interlace)
-    print("img: ", image.img)
-    print()
-
-    image.read_chunks()
-    for i in range(5):
-        for j in range(6):
-            print(image.img[i][j], end = " ")
-        print()
-    
-    image.save_rgb("brainbow_r.png", 1)
-
-if __name__ == "__main__":
-    main()
+            
