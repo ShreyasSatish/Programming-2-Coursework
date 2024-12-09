@@ -172,7 +172,7 @@ class PNG():
         self.img = [row[i:i + self.width] for i in range(0, len(row), self.width)]
 
     def save_rgb(self, file_name, rgb_option):
-        # Save R,G, or B channel of img attribute into PNG file called file_name
+        # Save R, G, or B channel of img attribute into PNG file called file_name
         """Picks out desired channel and saves it into a seperate file.
         
         Args:
