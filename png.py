@@ -1,5 +1,5 @@
 """Coding Task to open a PNG, store its contents, and save modified PNG files"""
-
+import zlib
 
 class PNG():
 
@@ -51,9 +51,7 @@ class PNG():
         if not self.data:
             print("No data has been loaded")
             return
-        
-        import zlib
-
+    
         #Put all the data that starts after the IDAT header into a separate variable
         img_data = b""
         IDAT_start_index = self.data.hex().index("49444154") + 8
@@ -132,11 +130,37 @@ class PNG():
                 recon.append(recon_x & 0xff) 
         row = [recon[i:i + 3] for i in range(0, len(recon), 3)]
         self.img = [row[i:i + self.width] for i in range(0, len(row), self.width)]
-        
 
     def save_rgb(self, file_name, rgb_option):
         #Save R,G, or B channel of img attribute into PNG file called file_name
-        pass
+        if rgb_option not in [1, 2, 3]:
+            print("Invalid rgb_option, please enter from 1, 2, or 3")
+            return
+        
+        data = self.img
+        for sublist in data:
+            for entry in sublist:
+                for i in range(len(entry)):
+                    if i != rgb_option - 1:
+                        entry[i] = 0
+
+        flattened_list = [value for sublist in data for entry in sublist for value in entry]
+        channel_data = bytearray(flattened_list)
+        compressed_channel = zlib.compress(channel_data)
+
+        with open(file_name, mode = "wb") as f:
+            f.write(b"\x89PNG\r\n\x1a\n") #Input PNG signature
+            #Write the IHDR chunk
+            IHDR_data = self.data[8:33]
+            f.write(IHDR_data)
+            #Write the IDAT chunk
+            f.write(len(compressed_channel).to_bytes(4, "big"))
+            f.write(b"IDAT")
+            f.write(compressed_channel)
+            f.write(zlib.crc32(b"IDAT" + compressed_channel).to_bytes(4, "big"))
+            #Wrtite the IEND chunk
+            f.write(b"\x00\x00\x00\x00IEND\xae\x42\x60\x82")
+        
 
 
 def main():
@@ -192,6 +216,7 @@ def main():
             print(image.img[i][j], end = " ")
         print()
     
+    image.save_rgb("brainbow_r.png", 1)
 
 if __name__ == "__main__":
     main()
