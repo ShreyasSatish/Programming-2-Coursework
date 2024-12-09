@@ -67,10 +67,11 @@ def main():
         print()
     
     t0 = time.time()
-    image.save_rgb("brainbow_b.png", 3)
+    image.save_rgb("brainbow_r.png", 1)
     t1 = time.time()
     print(f"save_rgb function takes this long to run: {t1-t0}")
 
+    help("png.PNG")
 
 if __name__ == "__main__":
     main()
