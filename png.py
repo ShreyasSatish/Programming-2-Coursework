@@ -127,7 +127,7 @@ class PNG():
                 img_data += chunk_data
             elif chunk_type == b"IEND":
                 break
-            
+
         # Decompress the data, raise an error if decompression failed
         try:
             decompressed_data = zlib.decompress(img_data)
@@ -135,17 +135,16 @@ class PNG():
             print(f"Decompression failed: {e}")
             return
 
-        bytes_per_pixel = 3
-        stride= self.width * bytes_per_pixel
+        stride= self.width * 3
         recon = []
         def recon_a(y, x): # To find reconstruction of left bit
-            return recon[y * stride + x - bytes_per_pixel] if x >= bytes_per_pixel else 0
+            return recon[y * stride + x - 3] if x >= 3 else 0
             
         def recon_b(y, x): # To find reconstruction of above bit
             return recon[(y - 1) * stride + x] if y > 0 else 0
             
         def recon_c(y, x): # To find reconstruction of above left bit
-            return recon[(y - 1) * stride + x - bytes_per_pixel] if y > 0 and x >= bytes_per_pixel else 0
+            return recon[(y - 1) * stride + x - 3] if y > 0 and x >= 3 else 0
             
         def paeth(a, b, c): # To find reconstruction of paeth filter
             p = a + b - c
