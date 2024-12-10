@@ -108,10 +108,26 @@ class PNG():
     
         # Put all the data that starts after the IDAT header into a separate variable
         img_data = b""
-        IDAT_start_index = self.data.hex().index("49444154") + 8
-        IDAT_data = self.data.hex()[IDAT_start_index:]
-        img_data += bytes.fromhex(IDAT_data)
-
+        i = 8
+        
+        while i < len(self.data):
+            # Read chunk length
+            chunk_len = int.from_bytes(self.data[i:i + 4], "big")
+            i += 4
+            # Read the chunk type
+            chunk_type = self.data[i:i + 4]
+            i += 4
+            # Read the chunk data, based on chunk length
+            chunk_data = self.data[i:i + chunk_len]
+            i += chunk_len
+            # Step over CRC
+            i += 4
+            # Want to process only the IDAT chunks
+            if chunk_type == b"IDAT":
+                img_data += chunk_data
+            elif chunk_type == b"IEND":
+                break
+            
         # Decompress the data, raise an error if decompression failed
         try:
             decompressed_data = zlib.decompress(img_data)
