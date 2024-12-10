@@ -84,6 +84,9 @@ class PNG():
         
         Returns None.
         """
+        if not self.valid_png():
+            print("Loaded file is not a valid PNG")
+            return
 
         IHDR_start_index = self.data.hex().index("49484452") + 8
         self.width = int(self.data.hex()[IHDR_start_index:IHDR_start_index + 8], 16)
@@ -102,7 +105,10 @@ class PNG():
         """
 
         # Checks if data has been loaded
-        if not self.data:
+        if not self.valid_png():
+            print("Loaded file is not a valid PNG")
+            return
+        elif not self.data:
             print("No data has been loaded")
             return
     
@@ -197,7 +203,13 @@ class PNG():
         
         Returns None
         """
-        if rgb_option not in [1, 2, 3]:
+        if not self.valid_png():
+            print("Loaded file is not a valid PNG")
+            return
+        elif not self.data:
+            print("No data has been loaded")
+            return
+        elif rgb_option not in [1, 2, 3]:
             print("Invalid rgb_option, please enter from 1, 2, or 3")
             return
         
