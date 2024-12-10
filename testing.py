@@ -20,7 +20,7 @@ def main():
     print("img: ", image.img)
 
     t0 = time.time()
-    image.load_file("forest.png")
+    image.load_file("ocean.png")
     t1 = time.time()
     print(f"load_file function took this long to run: {t1-t0}")
 
@@ -67,7 +67,7 @@ def main():
         print()
     
     t0 = time.time()
-    image.save_rgb("forest_r.png", 1)
+    image.save_rgb("ocean_r.png", 3)
     t1 = time.time()
     print(f"save_rgb function takes this long to run: {t1-t0}")
 
