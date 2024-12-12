@@ -20,7 +20,7 @@ def main():
     print("img: ", image.img)
 
     t0 = time.time()
-    image.load_file("forest.png")
+    image.load_file("brainbow.png")
     t1 = time.time()
     print(f"load_file function took this long to run: {t1-t0}")
 
@@ -61,13 +61,14 @@ def main():
     image.read_chunks()
     t1 = time.time()
     print(f"read_chunks function took this long to run: {t1-t0}")
+    
     for i in range(5):
         for j in range(6):
             print(image.img[i][j], end = " ")
         print()
     
     t0 = time.time()
-    image.save_rgb("forest_r.png", 3)
+    image.save_rgb("brainbow_r.png", 1)
     t1 = time.time()
     print(f"save_rgb function takes this long to run: {t1-t0}")
 

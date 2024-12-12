@@ -15,7 +15,7 @@ class PNG():
         The width of the loaded PNG.
     height : int.
         The height of the loaded PNG.
-    bit_depth : int.
+    bit_depth  : int.
         The bit depth of the loaded PNG.
     color_type : int.
         The color type of the loaded PNG.
